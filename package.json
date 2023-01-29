@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "env-cmd -f config.env nodemon server.js --trace-deprecation "
+    "start": "env-cmd -f config.env nodemon server.js --trace-deprecation ",
+    "delete": "env-cmd -f config.env node utils/manipulateData delete --trace-deprecation ",
+    "import": "env-cmd -f config.env node utils/manipulateData import --trace-deprecation "
   },
   "keywords": [],
   "author": "",
@@ -16,5 +18,8 @@
   },
   "devDependencies": {
     "env-cmd": "^10.1.0"
+  },
+  "engines": {
+    "node": ">=10.0.0"
   }
 }
