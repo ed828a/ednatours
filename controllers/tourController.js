@@ -88,7 +88,7 @@ exports.getTour = async (req, res) => {
     try {
         console.log(req.params);
 
-        const tour = await Tour.findById(req.params.id); // this is the shorthand of Tour.findOne({_id: req.param.id})
+        const tour = await Tour.findById(req.params.id).select('-__v'); // this is the shorthand of Tour.findOne({_id: req.param.id})
 
         res.status(200).json({
             status: "success",
@@ -164,6 +164,7 @@ exports.checkBody = (req, res, next) => {
     }
 };
 
+// Aggregation 
 exports.getTourStats = async (req, res) => {
     try {
         const stats = await Tour.aggregate([
@@ -184,9 +185,9 @@ exports.getTourStats = async (req, res) => {
             {
                 $sort: {avgPrice: 1}
             }, 
-            {
-                $match: {_id: {$ne: 'EASY'}}
-            }
+            // {
+            //     $match: {_id: {$ne: 'EASY'}}
+            // }
         ])
 
         res.status(200).json({
@@ -200,7 +201,7 @@ exports.getTourStats = async (req, res) => {
         });
     }
 }
-
+// Aggregation
 exports.getMonthlyPlan = async (req, res, next) => {
     try {
         const year = req.params.year * 1

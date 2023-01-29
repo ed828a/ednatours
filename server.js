@@ -1,3 +1,6 @@
+// const dotenv = require('dotenv');  // for debugging
+// dotenv.config({ path: './config.env' }); // for debugging
+
 const app = require("./app");
 const mongoose = require("mongoose");
 
