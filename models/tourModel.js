@@ -11,7 +11,7 @@ const tourSchema = new mongoose.Schema(
             trim: true,
             maxLength: [40, "A tour name must not exceed 40 characters"],
             minLength: [10, "A tour name must have more than 10 characters"],
-            validate: [validator.isAlpha, "Tour name contains only characters."]
+            // validate: [validator.isAlpha, "Tour name contains only characters."]
         },
         duration: {
             type: Number,
@@ -33,7 +33,7 @@ const tourSchema = new mongoose.Schema(
             type: Number,
             default: 4.5,
             min: [1, "Rating must be greater than 0"],
-            max: [10, "Rating can't be bigger than 10"],
+            max: [5, "Rating can't be bigger than 5"],
         },
         ratingsQuantity: { type: Number, default: 0 },
         price: {

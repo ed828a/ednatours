@@ -7,7 +7,8 @@
     "start": "env-cmd -f config.env nodemon server.js --trace-deprecation ",
     "delete": "env-cmd -f config.env node utils/manipulateData delete --trace-deprecation ",
     "import": "env-cmd -f config.env node utils/manipulateData import --trace-deprecation ",
-    "debug": "ndb ."
+    "debug": "ndb .",
+    "production": "env-cmd -f product.config.env nodemon server.js --trace-deprecation "
   },
   "keywords": [],
   "author": "",
