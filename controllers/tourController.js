@@ -104,8 +104,8 @@ exports.createTour = async (req, res) => {
 
 exports.getTour = async (req, res) => {
     try {
-        console.log("req.query", req.query);
-        console.log("req.params", req.params);
+        // console.log("req.query", req.query);
+        // console.log("req.params", req.params);
 
         const tour = await Tour.findById(req.params.id).select("-__v"); // this is the shorthand of Tour.findOne({_id: req.param.id})
 

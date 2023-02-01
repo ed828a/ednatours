@@ -1,4 +1,6 @@
 const fs = require("fs");
+const User = require("../models/userModel");
+const catchAsyncError = require("../utils/catchAsyncError");
 
 const users = JSON.parse(
     fs.readFileSync(`${__dirname}/../dev-data/data/users.json`)
@@ -6,13 +8,22 @@ const users = JSON.parse(
 
 // console.log(users)
 
-exports.getAllUsers = (req, res) => {
+// exports.getAllUsers = (req, res) => {
+//     res.status(200).json({
+//         status: "success",
+//         results: users.length,
+//         data: { users },
+//     });
+// };
+exports.getAllUsers = catchAsyncError(async (req, res, next) => {
+    const users = await User.find();
+    
     res.status(200).json({
         status: "success",
         results: users.length,
         data: { users },
     });
-};
+});
 
 exports.createUser = (req, res) => {
     // console.log(req.body)
