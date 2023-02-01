@@ -185,12 +185,13 @@ exports.updateTour = async (req, res) => {
 //     }
 // });
 
-exports.deleteTour = async (req, res) => {
+exports.deleteTour = async (req, res, next) => {
     try {
-        console.log(req.params);
+        console.log(req.params.id);
 
         const tour = await Tour.findByIdAndDelete(req.params.id);
-        // console.log(tour)
+        console.log(tour)
+
         if (!tour) {
             next(new AppError("No tour found with that Id", 404));
         } else {
