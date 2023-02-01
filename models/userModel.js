@@ -51,7 +51,12 @@ const userSchema = mongoose.Schema(
             required: false,
         },
         passwordResetToken: String,
-        passwordResetExpires: Date,        
+        passwordResetExpires: Date,   
+        active: {
+            type: Boolean,
+            default: true,
+            select: false
+        }     
     },
     {
         timestamps: true,
@@ -81,6 +86,11 @@ userSchema.pre("save", async function (next) {
     this.passwordChangedAt = Date.now() - 1000; // because signing a token is earlier than user.save()
     next()
 });
+
+userSchema.pre(/^find/, function (next) {
+    this.find({ active: true });
+    next()
+})
 
 // create an instance method: a method available among all documents of a certain collection
 // candidatePassword is the plain text version of the password

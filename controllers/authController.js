@@ -241,3 +241,4 @@ exports.updatePassword = catchAsyncError(async (req, res, next) => {
      })
     
 })
+

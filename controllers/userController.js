@@ -1,10 +1,11 @@
 const fs = require("fs");
 const User = require("../models/userModel");
+const AppError = require("../utils/appError");
 const catchAsyncError = require("../utils/catchAsyncError");
 
-const users = JSON.parse(
-    fs.readFileSync(`${__dirname}/../dev-data/data/users.json`)
-);
+// const users = JSON.parse(
+//     fs.readFileSync(`${__dirname}/../dev-data/data/users.json`)
+// );
 
 // console.log(users)
 
@@ -15,9 +16,10 @@ const users = JSON.parse(
 //         data: { users },
 //     });
 // };
+
 exports.getAllUsers = catchAsyncError(async (req, res, next) => {
     const users = await User.find();
-    
+
     res.status(200).json({
         status: "success",
         results: users.length,
@@ -61,6 +63,7 @@ exports.getUser = (req, res) => {
     }
 };
 
+// this is for admin to manage users
 exports.updateUser = (req, res) => {
     console.log(req.params);
     console.log(req.body);
@@ -123,3 +126,42 @@ exports.deleteUser = (req, res) => {
         res.status(404).json({ status: "failure", message: "No Such User" });
     }
 };
+
+const filterObj = (obj,...allowedFields) => {
+    const newObj = {};
+    Object.keys(obj).forEach((el) => {
+        if (allowedFields.includes(el)) {
+            newObj[el] = obj[el];
+        }
+    });
+    return newObj;
+};
+    
+
+// this is user update its self document
+exports.updateMe = catchAsyncError(async (req, res, next) => {
+    // 1) create error if user POSTs password data
+    if(req.body.password || req.body.passwordConfirm) {
+        return next( new AppError( "This route is not for password update/ Please use /updateMyPassword", 400));
+    }
+    // 2) Filter out unwanted fields that are not allowed to be updated
+    const filteredBody = filterObj(req.body, 'name', 'email')
+
+    // Update user document, here we can't use save() because some required fields are missing
+    const user = await User.findByIdAndUpdate(req.user.id, filteredBody, {
+        new: true,
+        runValidators: true,
+    });
+    
+    res.status(200).json({
+        status: "success",
+        data: { user },
+     })
+})
+
+// When user deletes his account, we don't actually delete its account. Just mark it disabled. Only Admin can delete accounts.
+exports.deleteMe = catchAsyncError(async (req, res, next) => {
+    await User.findByIdAndUpdate(req.user.id, { active: false })
+    res.status(204).json({ status: "success", data: null })    
+})
+
