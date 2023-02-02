@@ -16,6 +16,18 @@ const signToken = (id) => {
 
 const createdSendToken = (user, statusCode, res) => {
     const token = signToken(user._id); // this should in userModel.js
+    const cookieOptions = {
+        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+        httpOnly: true, // make sure this cookie can not be accessed by browser    
+    }
+    if(process.env.NODE_ENV === "production"){
+        cookieOptions.secure = true; // only for https
+    }
+
+    // remove password from response
+    user.password = undefined;
+
+    res.cookie('jwt', token, cookieOptions)
 
      res.status(statusCode).json({
          status: "success",
@@ -30,28 +42,33 @@ exports.signup = catchAsyncError(async (req, res, next) => {
     // we noly use take the neccesary data from req.body
     // only admin controls the user's role manually.
 
-    const newUser = await User.create(req.body);
-    // const newUser = await User.create({
-    //     name: req.body.name,
-    //     email: req.body.email,
-    //     password: req.body.password,
-    //     passwordConfirm: req.body.passwordConfirm,
-    // });
+    // const newUser = await User.create(req.body); // req.body is opptunity to inject hacking code
+    const newUser = await User.create({
+        name: req.body.name,
+        email: req.body.email,
+        password: req.body.password,
+        passwordConfirm: req.body.passwordConfirm,
+    });
 
     // when you sign up, you also log in. which means just sending the token back.
-    const token = signToken(newUser._id); // using _id as payload is common practice
+    // const token = signToken(newUser._id); // using _id as payload is common practice
 
-    res.status(201).json({
-        status: "success",
-        token,
-        data: {
-            user: newUser,
-        },
-    });
+    // res.status(201).json({
+    //     status: "success",
+    //     token,
+    //     data: {
+    //         user: newUser,
+    //     },
+    // });
+
+    createdSendToken(newUser, 201, res);
+    
 });
 
 exports.login = catchAsyncError(async (req, res, next) => {
     const { email, password } = req.body;
+    console.log('req.body:', req.body);
+    
     // 1) check if email and password exist
     if (!email || !password) {
         return next(new AppError("please provide email and password", 400));
@@ -83,12 +100,14 @@ exports.login = catchAsyncError(async (req, res, next) => {
     }
 
     // 3) if everything ok, send token to client
-    const token = signToken(user._id);
+    // const token = signToken(user._id);
 
-    res.status(200).json({
-        status: "Success",
-        token,
-    });
+    // res.status(200).json({
+    //     status: "Success",
+    //     token,
+    // });
+    createdSendToken(user, 200, res);
+    
 });
 
 exports.protect = catchAsyncError(async (req, res, next) => {
@@ -208,12 +227,14 @@ exports.resetPassword = catchAsyncError(async (req, res, next) => {
      await user.save();
      // 3) update changedPasswordAt property for the user
      // 4) log the user in, send JWT token to user
-     const token = signToken(user._id); // this should in userModel.js
+    //  const token = signToken(user._id); // this should in userModel.js
 
-     res.status(200).json({
-         status: "success",
-         token,
-     })
+    //  res.status(200).json({
+    //      status: "success",
+    //      token,
+    //  })
+     createdSendToken(user, 200, res);
+     
 });
 
 exports.updatePassword = catchAsyncError(async (req, res, next) => {
@@ -239,6 +260,10 @@ exports.updatePassword = catchAsyncError(async (req, res, next) => {
          status: "success",
          token,
      })
-    
+     createdSendToken(user, 200, res);
+
 })
+
+// homework: if user keep failing to log in 10times, then he must wait 10 hours before trying again
+
 
