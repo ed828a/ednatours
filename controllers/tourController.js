@@ -74,12 +74,13 @@ exports.createTour = async (req, res) => {
     // console.log("createTour - ", req.body)
     try {
         const newTour = await Tour.create(req.body);
+
         res.status(201).json({
             status: "success",
             data: { tour: newTour },
         });
     } catch (error) {
-        console.log('error: ', error)
+        console.log("error: ", error);
         // console.log('error.stack: ', error.stack)
         // console.log(error.message);
 
@@ -106,19 +107,36 @@ exports.getTour = async (req, res) => {
     try {
         // console.log("req.query", req.query);
         // console.log("req.params", req.params);
+        const tour = await Tour.findById(req.params.id).populate({
+            path: "reviews",
+            select: "-__v -updatedAt",
+        });
+        // .select("-__v");
 
-        const tour = await Tour.findById(req.params.id).select("-__v"); // this is the shorthand of Tour.findOne({_id: req.param.id})
+        // .populate({
+        //     path: 'guides',
+        //     select: '-__v -passwordChangedAt'
+        // });
+
+        // const tour = await Tour.findById(req.params.id).select("-__v").populate('guides'); // this is the shorthand of Tour.findOne({_id: req.param.id})
+        // console.log('tour: ', tour);
 
         res.status(200).json({
             status: "success",
             data: { tour },
         });
     } catch (error) {
-        console.log('error: ', error)
-        if(error.stack.startsWith('CastError')) {
-            res.status(400).json({ status: "failure", message: `Invalide ${error.path}: ${error.value}.` });
+        console.log("error: ", error);
+        if (error.stack.startsWith("CastError")) {
+            res.status(400).json({
+                status: "failure",
+                message: `Invalide ${error.path}: ${error.value}.`,
+            });
         } else {
-            res.status(404).json({ status: "failure", message: "No Such Tour" });
+            res.status(404).json({
+                status: "failure",
+                message: "No Such Tour",
+            });
         }
     }
 };
@@ -190,7 +208,7 @@ exports.deleteTour = async (req, res, next) => {
         console.log(req.params.id);
 
         const tour = await Tour.findByIdAndDelete(req.params.id);
-        console.log(tour)
+        console.log("tour: ", tour);
 
         if (!tour) {
             next(new AppError("No tour found with that Id", 404));

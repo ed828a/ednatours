@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const validator = require('validator')
+const validator = require("validator");
+const Review = require("./reviewModel");
+const User = require("./userModel");
 
 const tourSchema = new mongoose.Schema(
     {
@@ -43,10 +45,12 @@ const tourSchema = new mongoose.Schema(
         priceDiscount: {
             type: Number,
             validate: {
-                validator: function (val) { // this function can not work on update, only work on create
+                validator: function (val) {
+                    // this function can not work on update, only work on create
                     return val < this.price;
                 },
-                message: "Discount price ({VALUE}) should be below regular price",
+                message:
+                    "Discount price ({VALUE}) should be below regular price",
             },
         },
         summary: {
@@ -74,6 +78,23 @@ const tourSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        startLocation: {
+            // GeoJSON Point
+            type: { type: String, default: "Point", enum: ["Point"] },
+            coordinates: [Number],
+            address: String,
+            description: String,
+        },
+        locations: [
+            {
+                type: { type: String, default: "Point", enum: ["Point"] },
+                coordinates: [Number],
+                address: String,
+                description: String,
+                day: Number,
+            },
+        ],
+        guides: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     },
     {
         timestamps: true,
@@ -88,6 +109,15 @@ tourSchema.virtual("durationWeeks").get(function () {
     return this.duration / 7;
 });
 
+// Virtual populate, this like to add reviews field to the model when finding.
+tourSchema
+    .virtual("reviews", {
+        ref: "Review", // reference to the model Review
+        foreignField: "tour", // the key field in the ref model
+        localField: "_id", // the refed key field in the local model
+        // above means that tour field in Review modle refer to the _id field of this model
+    })
+
 // DOCUMENT middleware: run before .save() and .create(), but not .insertMany()
 tourSchema.pre("save", function (next) {
     const tour = this; // because this is pointing the current document, it's called document middleware.
@@ -95,6 +125,22 @@ tourSchema.pre("save", function (next) {
 
     next(); // because it's a middleware
 });
+
+// embedded document middleware
+// tourSchema.pre("save", async function (next) {
+//     const guidesPromises = this.guides.map(async id => await User.findById(id))
+//     this.guides = await Promise.all(guidesPromises)
+
+//     next()
+// })
+// tourSchema.pre('findOneAndUpdate', async function(next, ...args) {
+//     console.log('args', args)
+
+//     console.log('this.getQuery: ', this.getQuery())
+//     const docToUpdate = await this.model.findOne(this.getQuery());
+//     console.log('docToUpdate: ', docToUpdate); // The document that `findOneAndUpdate()` will modify
+//     next()
+// });
 
 // tourSchema.pre('save', function (next) {
 //     console.log('Will save document....')
@@ -109,11 +155,24 @@ tourSchema.pre("save", function (next) {
 // this regex suits all find-methods
 tourSchema.pre(/^find/, function (next) {
     this.start = Date.now();
-    // this is pointing to the current query, not a document
-    this.find({ secretTour: { $ne: true } });
+    // 'this' is pointing to the current query, not a document
+    this.find({ secretTour: { $ne: true } }).populate({
+        path: "guides",
+        select: "-__v, -passwordChangedAt",
+    });
+    // above hiding secret tour
 
     next();
 });
+
+// tourSchema.pre(/^find/, function (next) {
+//     this.populate({
+//         path: "guides",
+//         select: "-__v, -passwordChangedAt",
+//     });
+
+//     next();
+// });
 
 tourSchema.post(/^find/, function (docs, next) {
     // console.log(docs);

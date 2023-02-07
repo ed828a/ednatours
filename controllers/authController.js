@@ -6,7 +6,6 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 
-
 const signToken = (id) => {
     // usually JWT_SECRET is 32 characters long
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -17,26 +16,28 @@ const signToken = (id) => {
 const createdSendToken = (user, statusCode, res) => {
     const token = signToken(user._id); // this should in userModel.js
     const cookieOptions = {
-        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
-        httpOnly: true, // make sure this cookie can not be accessed by browser    
-    }
-    if(process.env.NODE_ENV === "production"){
+        expires: new Date(
+            Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+        ),
+        httpOnly: true, // make sure this cookie can not be accessed by browser
+    };
+    if (process.env.NODE_ENV === "production") {
         cookieOptions.secure = true; // only for https
     }
 
     // remove password from response
     user.password = undefined;
 
-    res.cookie('jwt', token, cookieOptions)
+    res.cookie("jwt", token, cookieOptions);
 
-     res.status(statusCode).json({
-         status: "success",
-         token,
-         data: {
-             user,
-         },
-     })
-}
+    res.status(statusCode).json({
+        status: "success",
+        token,
+        data: {
+            user,
+        },
+    });
+};
 
 exports.signup = catchAsyncError(async (req, res, next) => {
     // we noly use take the neccesary data from req.body
@@ -62,13 +63,12 @@ exports.signup = catchAsyncError(async (req, res, next) => {
     // });
 
     createdSendToken(newUser, 201, res);
-    
 });
 
 exports.login = catchAsyncError(async (req, res, next) => {
     const { email, password } = req.body;
-    console.log('req.body:', req.body);
-    
+    console.log("req.body:", req.body);
+
     // 1) check if email and password exist
     if (!email || !password) {
         return next(new AppError("please provide email and password", 400));
@@ -107,7 +107,6 @@ exports.login = catchAsyncError(async (req, res, next) => {
     //     token,
     // });
     createdSendToken(user, 200, res);
-    
 });
 
 exports.protect = catchAsyncError(async (req, res, next) => {
@@ -157,6 +156,8 @@ exports.protect = catchAsyncError(async (req, res, next) => {
 // restrict certain roles to access to resources
 exports.restrictTo = (...roles) => {
     return (req, res, next) => {
+        console.log("req.user.role:", req.user.role);
+        
         if (!roles.includes(req.user.role)) {
             return next(
                 new AppError(
@@ -182,7 +183,9 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // 3) send reset token to user
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/v1/users/resetPassword/${resetToken}`;
+    const resetUrl = `${req.protocol}://${req.get(
+        "host"
+    )}/api/v1/users/resetPassword/${resetToken}`;
     const message = `Forgot your password? Submit a PATCH request with your new password and password comfirm to: ${resetUrl}\nIf you didn't forget your password, please ignore this email`;
     try {
         await sendEmail({
@@ -191,12 +194,16 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
             message,
         });
     } catch (error) {
-        console.log('error', error);
+        console.log("error", error);
 
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save({ validateBeforeSave: false });
-        return next(new AppError("There was an error sending the email. Try again later!", 500)
+        return next(
+            new AppError(
+                "There was an error sending the email. Try again later!",
+                500
+            )
         );
     }
 
@@ -207,34 +214,33 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
 });
 
 exports.resetPassword = catchAsyncError(async (req, res, next) => {
-     // 1) get user based on reset token
-     const hashedToken = crypto
-      .createHash("sha256")
-      .update(req.params.token) 
-      .digest("hex");
-     const user = await User.findOne({
+    // 1) get user based on reset token
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(req.params.token)
+        .digest("hex");
+    const user = await User.findOne({
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
-     })
-     // 2) if token has not expired, and there is user, set the new password
-     if (!user) {
+    });
+    // 2) if token has not expired, and there is user, set the new password
+    if (!user) {
         return next(new AppError("Token is invalid or has expired", 400));
-     }
-     user.password = req.body.password;
-     user.passwordConfirm = req.body.passwordConfirm; 
-     user.passwordResetToken = undefined;
-     user.passwordResetExpires = undefined;
-     await user.save();
-     // 3) update changedPasswordAt property for the user
-     // 4) log the user in, send JWT token to user
+    }
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+    // 3) update changedPasswordAt property for the user
+    // 4) log the user in, send JWT token to user
     //  const token = signToken(user._id); // this should in userModel.js
 
     //  res.status(200).json({
     //      status: "success",
     //      token,
     //  })
-     createdSendToken(user, 200, res);
-     
+    createdSendToken(user, 200, res);
 });
 
 exports.updatePassword = catchAsyncError(async (req, res, next) => {
@@ -243,27 +249,27 @@ exports.updatePassword = catchAsyncError(async (req, res, next) => {
 
     // 2)check if POSTed current password is correct
     const currentPassword = req.body.currentPassword;
-    const isCorrectPassword = await user.correctPassword(currentPassword, user.password);
-    if(!isCorrectPassword) {
+    const isCorrectPassword = await user.correctPassword(
+        currentPassword,
+        user.password
+    );
+    if (!isCorrectPassword) {
         return next(new AppError("Current password is incorrect", 401));
     }
 
-    // 3) if so update password    
+    // 3) if so update password
     user.password = req.body.password;
     user.passwordConfirm = req.body.passwordConfirm;
     await user.save();
-       
+
     // 4) log the user in, send JWT token to user
     const token = signToken(user._id); // this should in userModel.js
 
     res.status(200).json({
-         status: "success",
-         token,
-     })
-     createdSendToken(user, 200, res);
-
-})
+        status: "success",
+        token,
+    });
+    createdSendToken(user, 200, res);
+});
 
 // homework: if user keep failing to log in 10times, then he must wait 10 hours before trying again
-
-
