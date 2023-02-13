@@ -1,10 +1,10 @@
 const express = require("express");
 const { protect, restrictTo } = require("../controllers/authController");
-const {
-    getReviews,
-    createReview,
-    getReview,
-} = require("../controllers/reviewController");
+// const {
+//     getReviews,
+//     createReview,
+//     getReview,
+// } = require("../controllers/reviewController");
 const {
     getAllTours,
     createTour,
@@ -16,7 +16,10 @@ const {
     aliasTopTours,
     getTourStats,
     getMonthlyPlan,
+    getToursWithinRadius,
+    getDistances,
 } = require("../controllers/tourController");
+const reviewRouter = require("../routes/reviewRoutes");
 
 const router = express.Router();
 
@@ -29,20 +32,38 @@ router.param("id", (req, res, next, val) => {
 
 router.route("/top-5-cheap").get(aliasTopTours, getAllTours);
 router.route("/tour-stats").get(getTourStats);
-router.route("/monthly-plan/:year").get(getMonthlyPlan);
+router
+    .route("/monthly-plan/:year")
+    .get(protect, restrictTo("admin", "lead-guide", "guide"), getMonthlyPlan);
 
-router.route("/").get(protect, getAllTours).post(checkBody, createTour);
+// /tours-within?distance=233&center=-40,45&unit=mi
+// /tours-within/233/center/-40,45/unit/mi
+router
+    .route("/tours-within/:distance/center/:latlng/unit/:unit")
+    .get(getToursWithinRadius);
+
+router.route("/distances/:latlng/unit/:unit").get(getDistances);
+
+
+router
+    .route("/")
+    .get(getAllTours)
+    .post(protect, restrictTo("admin", "lead-guide"), checkBody, createTour);
+
 router
     .route("/:id")
     .get(getTour)
-    .patch(updateTour)
+    .patch(protect, restrictTo("admin", "lead-guide"), updateTour)
     .delete(protect, restrictTo("admin", "lead-guide"), deleteTour);
 
-router
-    .route("/:id/reviews")
-    .get(getReviews)
-    .post(protect, restrictTo("user"), createReview);
-    
-router.route("/:id/reviews/:reviewId").get(getReview);
+// router is just a middleware, so we can use 'use' method on it
+router.use("/:tourId/reviews", reviewRouter); // reviewRouter need to merge /:tourId/ param
+
+// router
+//     .route("/:tourId/reviews")
+//     .get(getReviews)
+//     .post(protect, restrictTo("user"), createReview);
+
+// router.route("/:tourId/reviews/:reviewId").get(getReview);
 
 module.exports = router;

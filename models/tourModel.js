@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const validator = require("validator");
-const Review = require("./reviewModel");
-const User = require("./userModel");
+// const validator = require("validator");
+// const Review = require("./reviewModel");
+// const User = require("./userModel");
 
 const tourSchema = new mongoose.Schema(
     {
@@ -36,6 +36,7 @@ const tourSchema = new mongoose.Schema(
             default: 4.5,
             min: [1, "Rating must be greater than 0"],
             max: [5, "Rating can't be bigger than 5"],
+            set: (val) => Math.round(val * 10) / 10,
         },
         ratingsQuantity: { type: Number, default: 0 },
         price: {
@@ -103,6 +104,13 @@ const tourSchema = new mongoose.Schema(
     }
 );
 
+tourSchema.index({ startLocation: "2dsphere" });
+tourSchema.index({ price: 1 }); // 1 means sort by price ascending, -1 means descending
+// tourSchema.index({ price: 1, ratingsAverage: -1 });
+tourSchema.index({ slug: 1 });
+
+// tourSchema.index({ startLocation: "2dsphere" }); //because geospatial index
+
 // virtual property is created each time when we get some data out of the database.
 tourSchema.virtual("durationWeeks").get(function () {
     // we need this in this function, this is pointing to the current document
@@ -110,13 +118,12 @@ tourSchema.virtual("durationWeeks").get(function () {
 });
 
 // Virtual populate, this like to add reviews field to the model when finding.
-tourSchema
-    .virtual("reviews", {
-        ref: "Review", // reference to the model Review
-        foreignField: "tour", // the key field in the ref model
-        localField: "_id", // the refed key field in the local model
-        // above means that tour field in Review modle refer to the _id field of this model
-    })
+tourSchema.virtual("reviews", {
+    ref: "Review", // reference to the model Review
+    foreignField: "tour", // the key field in the ref model
+    localField: "_id", // the refed key field in the local model
+    // above means that tour field in Review modle refer to the _id field of this model
+});
 
 // DOCUMENT middleware: run before .save() and .create(), but not .insertMany()
 tourSchema.pre("save", function (next) {
@@ -181,11 +188,14 @@ tourSchema.post(/^find/, function (docs, next) {
 });
 
 // AGGREGATION middleware
-tourSchema.pre("aggregate", function (next) {
-    // this is pointing Aggregation Object
-    this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-    next();
-});
+// conflicts with geoNear aggregation, so commented out temporarily
+// tourSchema.pre("aggregate", function (next) {
+//     // this is pointing Aggregation Object
+//     this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//     console.log(this.pipeline());
+
+//     next();
+// });
 
 const Tour = mongoose.model("Tour", tourSchema);
 module.exports = Tour;
